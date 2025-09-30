@@ -1,348 +1,108 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Info } from "lucide-react";
-
-const WORDS = [
-  "diet",
-  "junk food",
-  "whole food",
-  "food security",
-  "takeaway",
-];
-
-const LEVELS = [
-  { value: 1, short: "Brand‑new", desc: "I haven't met this word before." },
-  { value: 2, short: "Looks familiar", desc: "I've seen it, but I'm not sure." },
-  { value: 3, short: "I get it when I read", desc: "I can explain the meaning." },
-  { value: 4, short: "Sentence‑ready", desc: "I can use it in a simple sentence." },
-  { value: 5, short: "Confident & flexible", desc: "I can use it with collocations/register." },
-];
-
-const ACTIONS: Record<number, { title: string; items: string[] }> = {
-  1: {
-    title: "Before you learn: make it visible",
-    items: [
-      "Check a simple definition + picture (L1 allowed).",
-      "Say it aloud and mark the stressed syllable.",
-      "Write a 5‑word hint (e.g., 'food plan over time').",
-    ],
-  },
-  2: {
-    title: "Firm up meaning & form",
-    items: [
-      "Do a quick 'true/false' definition check.",
-      "Create one personal example (short, simple).",
-      "Add one synonym or contrast word (e.g., 'fresh vs processed').",
-    ],
-  },
-  3: {
-    title: "Bridge to using it",
-    items: [
-      "Complete one sentence frame (e.g., 'a ___ meal').",
-      "Choose one safe collocation and use it once (e.g., 'nutritious meal').",
-      "Note the grammar pattern if needed (e.g., 'be tempted to + V').",
-    ],
-  },
-  4: {
-    title: "Stretch your use",
-    items: [
-      "Write 2 different sentences (change tense/register).",
-      "Add 2 collocations or a typical context (e.g., 'highly processed').",
-      "Swap word family once (e.g., 'digest' → 'digestion').",
-    ],
-  },
-  5: {
-    title: "Keep it active",
-    items: [
-      "Teach it in 10 seconds to a peer (or record yourself).",
-      "Write one tricky distractor sentence to challenge others.",
-      "Schedule spaced review (1, 3, 7 days).",
-    ],
-  },
-};
-
-export default function App() {
-  const [step, setStep] = useState<"rate" | "summary" | "video">("rate");
-  const [ratings, setRatings] = useState<Record<string, number>>(() => {
-    const saved = localStorage.getItem("food-vocab-minimal");
-    if (saved) return JSON.parse(saved);
-    const init: Record<string, number> = {};
-    WORDS.forEach((w) => (init[w] = 0));
-    return init;
-  });
-
-  useEffect(() => {
-    localStorage.setItem("food-vocab-minimal", JSON.stringify(ratings));
-  }, [ratings]);
-
-  const doneCount = useMemo(() => Object.values(ratings).filter((v) => v > 0).length, [ratings]);
-
-  function setLevel(word: string, level: number) {
-    setRatings((r) => ({ ...r, [word]: level }));
-  }
-
-  if (step === "summary") return <Summary ratings={ratings} onBack={() => setStep("rate")} onNext={() => setStep("video")} />;
-  if (step === "video") return <VideoScreen ratings={ratings} onBack={() => setStep("summary")} />;
-
-  return (
-    <div className="min-h-screen bg-white text-slate-900 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold tracking-tight">Food Vocabulary — Quick Self‑Check</h1>
-          <p className="text-slate-600">Choose <span className="font-medium">one number (1–5)</span> for each word. Keep it fast and simple.</p>
-        </header>
-
-        <Card className="border-slate-200">
-          <CardContent className="p-4 space-y-3">
-            <div className="flex items-center gap-2 text-slate-700"><Info className="h-5 w-5"/><span className="font-medium">What the numbers mean</span></div>
-            <ol className="text-sm grid gap-1 list-decimal ml-5">
-              {LEVELS.map((L) => (
-                <li key={L.value}><span className="font-medium">{L.value}. {L.short}</span> — {L.desc}</li>
-              ))}
-            </ol>
-          </CardContent>
-        </Card>
-
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-slate-700">
-            <span>Rated: {doneCount}/{WORDS.length}</span>
-            <span>{Math.round((doneCount / WORDS.length) * 100)}%</span>
-          </div>
-          <Progress value={(doneCount / WORDS.length) * 100} />
-        </div>
-
-        <div className="grid gap-3">
-          {WORDS.map((word) => (
-            <Card key={word} className="border-slate-200">
-              <CardContent className="p-4 space-y-2">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                  <div>
-                    <div className="text-lg font-medium leading-tight">{word}</div>
-                    <div className="text-xs text-slate-500">Pick 1–5</div>
-                  </div>
-                  <div className="inline-flex rounded-xl overflow-hidden border">
-                    {LEVELS.map((L, idx) => (
-                      <Button
-                        key={L.value}
-                        size="sm"
-                        variant={ratings[word] === L.value ? "default" : "ghost"}
-                        className={`rounded-none px-3 ${idx !== LEVELS.length - 1 ? "border-r" : ""}`}
-                        onClick={() => setLevel(word, L.value)}
-                        aria-label={`${word}: ${L.value} ${L.short}`}
-                      >
-                        {L.value}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-                {ratings[word] > 0 && (
-                  <div className="text-xs text-slate-600 border rounded-lg p-2 bg-slate-50">
-                    <span className="font-medium">{LEVELS.find((l) => l.value === ratings[word])?.short}:</span>{" "}
-                    {LEVELS.find((l) => l.value === ratings[word])?.desc}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between text-sm">
-          <div className="text-slate-500">That’s it. Fast snapshot before learning.</div>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => {
-              if (!confirm("Clear all ratings?")) return;
-              const cleared: Record<string, number> = {}; WORDS.forEach((w) => (cleared[w] = 0)); setRatings(cleared);
-            }}>Clear</Button>
-            <Button onClick={() => {
-              const allRated = WORDS.every((w) => ratings[w] > 0);
-              if (!allRated && !confirm("Some words are unrated. Continue to summary?")) return;
-              setStep("summary");
-            }}>Next</Button>
-          </div>
-        </div>
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Food Vocabulary Self‑Assessment</title>
+<style>
+:root{--bg:#ffffff;--fg:#0f172a;--muted:#475569;--muted2:#64748b;--border:#e2e8f0;--accent:#111827;--pill:#f1f5f9}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}.wrap{max-width:880px;margin:0 auto;padding:24px}
+.h1{font-size:28px;font-weight:700;margin:0 0 6px}.muted{color:var(--muted)}
+.card{border:1px solid var(--border);border-radius:14px;background:#fff}
+.card>.c{padding:16px}
+.row{display:flex;gap:12px;align-items:center}
+.legend{display:grid;gap:6px;margin:0;padding-left:18px}
+.legend li{font-size:14px}
+.progress{height:10px;background:#eef2f7;border-radius:999px;overflow:hidden}
+.progress>i{display:block;height:100%;background:var(--accent);width:0}
+.grid{display:grid;gap:12px}
+.btn{border:1px solid var(--border);background:#fff;border-radius:12px;padding:10px 14px;font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:transparent}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.bar{border-radius:10px 10px 10px 10px;padding:8px 10px;border-left:0;border-right:0}
+.pill{display:inline-block;background:var(--pill);border:1px solid var(--border);border-radius:999px;padding:2px 8px;font-size:12px;color:var(--muted2)}
+.hstack{display:flex;justify-content:space-between;align-items:center}
+.inline-btns{display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.inline-btns .btn{border-radius:0;border:0}
+.inline-btns .btn+.btn{border-left:1px solid var(--border)}
+.hidden{display:none}
+.small{font-size:12px;color:var(--muted2)}
+.kv{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.badge{font-size:12px;border:1px solid var(--border);border-radius:999px;padding:2px 8px}
+.aspect{position:relative;padding-top:56.25%;border-radius:12px;overflow:hidden;background:#000}
+.aspect iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dot{width:28px;height:8px;border-radius:999px;background:#cbd5e1;border:0}
+.dot.active{background:#0f172a}
+.dot.done{background:#64748b}
+.section{display:none}
+.section.active{display:block}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="section active" id="sec-rate">
+    <div class="h1">Food Vocabulary — Quick Self‑Check</div>
+    <div class="muted">Choose <b>one number (1–5)</b> for each word. Keep it fast and simple.</div>
+    <div class="card" style="margin-top:12px"><div class="c">
+      <div class="row" style="gap:8px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke="#334155" stroke-width="1.5"/><path d="M12 8.00049V12.0005" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/><path d="M12 16.0005H12.01" stroke="#334155" stroke-width="1.5" stroke-linecap="round"/></svg><div style="font-weight:600;color:#334155">What the numbers mean</div></div>
+      <ol class="legend">
+        <li><b>1. Brand‑new</b> — I haven't met this word before.</li>
+        <li><b>2. Looks familiar</b> — I've seen it, but I'm not sure.</li>
+        <li><b>3. I get it when I read</b> — I can explain the meaning.</li>
+        <li><b>4. Sentence‑ready</b> — I can use it in a simple sentence.</li>
+        <li><b>5. Confident & flexible</b> — I can use it with collocations/register.</li>
+      </ol>
+    </div></div>
+    <div style="margin-top:12px">
+      <div class="hstack small"><span id="rated-count">Rated: 0/5</span><span id="rated-pct">0%</span></div>
+      <div class="progress" style="margin-top:6px"><i id="progress-bar"></i></div>
+    </div>
+    <div class="grid" style="margin-top:14px" id="word-list"></div>
+    <div class="hstack" style="margin-top:14px">
+      <div class="small">That’s it. Fast snapshot before learning.</div>
+      <div class="row">
+        <button class="btn" id="btn-clear">Clear</button>
+        <button class="btn primary" id="btn-next-1">Next</button>
       </div>
     </div>
-  );
-}
-
-function Summary({ ratings, onBack, onNext }: { ratings: Record<string, number>; onBack: () => void; onNext: () => void }) {
-  const groups = useMemo(() => {
-    const g: Record<number, string[]> = { 1: [], 2: [], 3: [], 4: [], 5: [] };
-    Object.entries(ratings).forEach(([w, v]) => {
-      if (v > 0) g[v as 1 | 2 | 3 | 4 | 5].push(w);
-    });
-    return g;
-  }, [ratings]);
-
-  const totalRated = Object.values(ratings).filter((v) => v > 0).length;
-
-  return (
-    <div className="min-h-screen bg-white text-slate-900 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Summary & Next Steps</h2>
-          <p className="text-slate-600">Pre‑learning plan based on your self‑check ({totalRated}/{WORDS.length} rated).</p>
-        </header>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          {LEVELS.map((L) => (
-            <Card key={L.value} className="border-slate-200">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium">{L.value}. {L.short}</div>
-                  <Badge variant={groups[L.value].length ? "default" : "secondary"}>{groups[L.value].length} word(s)</Badge>
-                </div>
-                <ul className="text-sm list-disc ml-5 text-slate-700">
-                  {ACTIONS[L.value].items.map((it, idx) => (
-                    <li key={idx}>{it}</li>
-                  ))}
-                </ul>
-                {groups[L.value].length > 0 && (
-                  <div className="text-xs text-slate-600">
-                    <span className="font-medium">Your words:</span> {groups[L.value].join(", ")}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={onBack}>Back</Button>
-          <Button onClick={onNext}>Next</Button>
-        </div>
-      </div>
+  </div>
+  <div class="section" id="sec-summary">
+    <div class="h1">Summary & Next Steps</div>
+    <div class="muted" id="summary-sub"></div>
+    <div class="grid" style="margin-top:12px" id="summary-cards"></div>
+    <div class="hstack" style="margin-top:14px">
+      <button class="btn" id="btn-back-2">Back</button>
+      <button class="btn primary" id="btn-next-2">Next</button>
     </div>
-  );
-}
-
-function VideoScreen({ ratings, onBack }: { ratings: Record<string, number>; onBack: () => void }) {
-  const VIDEO_URL = "https://youtu.be/LRKlGG0oYKw";
-  function getYouTubeId(u: string) {
-    try {
-      const url = new URL(u);
-      if (url.hostname.includes("youtu.be")) return url.pathname.replace("/", "");
-      if (url.hostname.includes("youtube.com")) return url.searchParams.get("v") || "";
-      return "";
-    } catch {
-      return "";
-    }
-  }
-  const VIDEO_ID = getYouTubeId(VIDEO_URL);
-  const starts: Record<string, number> = {
-    "diet": 46,
-    "junk food": 132,
-    "whole food": 225,
-    "food security": 287,
-    "takeaway": 359,
-  };
-  const ordered = ["diet", "junk food", "whole food", "food security", "takeaway"];
-  const segs = ordered.map((w, i) => ({
-    word: w,
-    start: starts[w],
-    end: i < ordered.length - 1 ? starts[ordered[i + 1]] - 1 : undefined,
-    level: ratings[w] || 0,
-  }));
-  const needed = segs.filter((s) => s.level >= 1 && s.level <= 3);
-  const [fullMode, setFullMode] = useState(false);
-  const [idx, setIdx] = useState(0);
-  const [completed, setCompleted] = useState<boolean[]>(() => needed.map(() => false));
-  const total = needed.length;
-  const progress = total ? Math.round((completed.filter(Boolean).length / total) * 100) : 0;
-  function buildUrl(start?: number, end?: number) {
-    const params = new URLSearchParams({ rel: "0", modestbranding: "1", controls: "1" });
-    if (start !== undefined) params.set("start", String(start));
-    if (end !== undefined) params.set("end", String(end));
-    params.set("autoplay", "1");
-    return `https://www.youtube.com/embed/${VIDEO_ID}?${params.toString()}`;
-  }
-  const current = needed[idx];
-  return (
-    <div className="min-h-screen bg-white text-slate-900 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <header className="space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">Targeted Video Practice</h2>
-          <p className="text-slate-600">We’ll skip words you already use well (4–5). You can switch to the full video any time.</p>
-        </header>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-sm text-slate-700">
-            <span>Segments completed: {completed.filter(Boolean).length}/{total}</span>
-            <span>{progress}%</span>
-          </div>
-          <Progress value={progress} />
-        </div>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-sm text-slate-700">
-            Mode: {fullMode ? <span className="font-medium">Full video (no skips)</span> : <span className="font-medium">Focused segments (1–3)</span>}
-          </div>
-          <div className="flex gap-2">
-            <Button variant={fullMode ? "default" : "outline"} onClick={() => setFullMode(true)}>Watch full video</Button>
-            <Button variant={!fullMode ? "default" : "outline"} onClick={() => setFullMode(false)} disabled={total === 0}>Watch focused parts</Button>
-          </div>
-        </div>
-        <Card className="border-slate-200">
-          <CardContent className="p-3 md:p-4 space-y-3">
-            {!fullMode && total === 0 && (
-              <div className="text-slate-600 text-sm">Nice! You rated everything 4–5. Switch to <span className="font-medium">Full video</span> to watch without skips.</div>
-            )}
-            {fullMode ? (
-              <div className="aspect-video w-full overflow-hidden rounded-xl">
-                <iframe
-                  className="w-full h-full"
-                  src={buildUrl()}
-                  title="YouTube video player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
-              </div>
-            ) : total > 0 ? (
-              <div className="space-y-3">
-                <div className="text-sm text-slate-700"><span className="font-medium">Segment {idx + 1} of {total}</span> — {current.word}</div>
-                <div className="aspect-video w-full overflow-hidden rounded-xl">
-                  <iframe
-                    className="w-full h-full"
-                    src={buildUrl(current.start, current.end)}
-                    title={`YouTube segment: ${current.word}`}
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                    allowFullScreen
-                  />
-                </div>
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <div className="text-xs text-slate-600">Starts at {fmtTime(current.start)}{current.end ? ` · ends at ${fmtTime(current.end)}` : ""}</div>
-                  <div className="flex gap-2">
-                    <Button variant="outline" onClick={() => setIdx((i) => Math.max(0, i - 1))} disabled={idx === 0}>Prev</Button>
-                    <Button variant="outline" onClick={() => setCompleted((c) => { const n=[...c]; n[idx]=true; return n; })}>Mark complete</Button>
-                    <Button onClick={() => setIdx((i) => Math.min(total - 1, i + 1))} disabled={idx === total - 1}>Next</Button>
-                  </div>
-                </div>
-                <div className="flex gap-1 flex-wrap">
-                  {needed.map((s, i) => (
-                    <button
-                      key={i}
-                      className={`h-2 w-6 rounded-full ${i === idx ? "bg-slate-900" : completed[i] ? "bg-slate-500" : "bg-slate-300"}`}
-                      onClick={() => setIdx(i)}
-                      aria-label={`Go to segment ${i + 1}: ${s.word}`}
-                    />
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
-        <div className="flex items-center justify-between">
-          <Button variant="outline" onClick={onBack}>Back</Button>
-          <div className="text-sm text-slate-500">Tip: Use focused parts first, then watch the full video.</div>
-        </div>
-      </div>
+  </div>
+  <div class="section" id="sec-video">
+    <div class="h1">Targeted Video Practice</div>
+    <div class="muted">We’ll skip words you already use well (4–5). You can switch to the full video any time.</div>
+    <div style="margin-top:12px">
+      <div class="hstack small"><span id="seg-count">Segments completed: 0/0</span><span id="seg-pct">0%</span></div>
+      <div class="progress" style="margin-top:6px"><i id="seg-bar"></i></div>
     </div>
-  );
-}
-
-function fmtTime(totalSeconds: number) {
-  const m = Math.floor(totalSeconds / 60);
-  const s = totalSeconds % 60;
-  return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
-}
+    <div class="hstack" style="margin-top:12px">
+      <div class="small">Mode: <b id="mode-label">Focused segments (1–3)</b></div>
+      <div class="row"><button class="btn" id="btn-full">Watch full video</button><button class="btn primary" id="btn-focused">Watch focused parts</button></div>
+    </div>
+    <div class="card" style="margin-top:12px"><div class="c" id="video-area"></div></div>
+    <div class="hstack" style="margin-top:14px">
+      <button class="btn" id="btn-back-3">Back</button>
+      <div class="small">Tip: Use focused parts first, then watch the full video.</div>
+    </div>
+  </div>
+</div>
+<script>
+const WORDS=["diet","junk food","whole food","food security","takeaway"];const LEVELS=[{v:1,s:"Brand‑new",d:"I haven't met this word before."},{v:2,s:"Looks familiar",d:"I've seen it, but I'm not sure."},{v:3,s:"I get it when I read",d:"I can explain the meaning."},{v:4,s:"Sentence‑ready",d:"I can use it in a simple sentence."},{v:5,s:"Confident & flexible",d:"I can use it with collocations/register."}];const ACTIONS={1:{t:"Before you learn: make it visible",a:["Check a simple definition + picture (L1 allowed).","Say it aloud and mark the stressed syllable.","Write a 5‑word hint (e.g., 'food plan over time')."]},2:{t:"Firm up meaning & form",a:["Do a quick 'true/false' definition check.","Create one personal example (short, simple).","Add one synonym or contrast word (e.g., 'fresh vs processed')."]},3:{t:"Bridge to using it",a:["Complete one sentence frame (e.g., 'a ___ meal').","Choose one safe collocation and use it once (e.g., 'nutritious meal').","Note the grammar pattern if needed (e.g., 'be tempted to + V')."]},4:{t:"Stretch your use",a:["Write 2 different sentences (change tense/register).","Add 2 collocations or a typical context (e.g., 'highly processed').","Swap word family once (e.g., 'digest' → 'digestion')."]},5:{t:"Keep it active",a:["Teach it in 10 seconds to a peer (or record yourself).","Write one tricky distractor sentence to challenge others.","Schedule spaced review (1, 3, 7 days)."]}};const starts={"diet":46,"junk food":132,"whole food":225,"food security":287,"takeaway":359};const VIDEO_URL="https://youtu.be/LRKlGG0oYKw";function ytid(u){try{const url=new URL(u);if(url.hostname.includes("youtu.be"))return url.pathname.replace("/","");if(url.hostname.includes("youtube.com"))return url.searchParams.get("v")||"";return""}catch{return""}}const VIDEO_ID=ytid(VIDEO_URL);const S={rate:document.getElementById("sec-rate"),summary:document.getElementById("sec-summary"),video:document.getElementById("sec-video")};function show(id){Object.values(S).forEach(x=>x.classList.remove("active"));S[id].classList.add("active")}let ratings=JSON.parse(localStorage.getItem("food-vocab-minimal")||"null");if(!ratings){ratings={};WORDS.forEach(w=>ratings[w]=0)}function save(){localStorage.setItem("food-vocab-minimal",JSON.stringify(ratings))}
+function renderRate(){const rated=Object.values(ratings).filter(v=>v>0).length;document.getElementById("rated-count").textContent=`Rated: ${rated}/${WORDS.length}`;document.getElementById("rated-pct").textContent=`${Math.round(rated/WORDS.length*100)}%`;document.getElementById("progress-bar").style.width=`${rated/WORDS.length*100}%`;const list=document.getElementById("word-list");list.innerHTML="";WORDS.forEach(w=>{const card=document.createElement("div");card.className="card";const c=document.createElement("div");c.className="c";const top=document.createElement("div");top.className="hstack";const tt=document.createElement("div");tt.innerHTML=`<div style="font-weight:600;font-size:18px;line-height:1.2">${w}</div><div class=small>Pick 1–5</div>`;const btns=document.createElement("div");btns.className="inline-btns";LEVELS.forEach((L,i)=>{const b=document.createElement("button");b.className=`btn ${ratings[w]===L.v?"primary":"ghost"}`;b.textContent=String(L.v);b.onclick=()=>{ratings[w]=L.v;save();renderRate()};btns.appendChild(b)});top.appendChild(tt);top.appendChild(btns);const desc=document.createElement("div");if(ratings[w]>0){const L=LEVELS.find(x=>x.v===ratings[w]);desc.className="small";desc.style.border="1px solid var(--border)";desc.style.background="#f8fafc";desc.style.padding="8px";desc.style.borderRadius="10px";desc.innerHTML=`<b>${L.s}:</b> ${L.d}`}c.appendChild(top);if(ratings[w]>0)c.appendChild(desc);card.appendChild(c);list.appendChild(card)})}
+function renderSummary(){const totalRated=Object.values(ratings).filter(v=>v>0).length;document.getElementById("summary-sub").textContent=`Pre‑learning plan based on your self‑check (${totalRated}/${WORDS.length} rated).`;const groups={1:[],2:[],3:[],4:[],5:[]};Object.entries(ratings).forEach(([w,v])=>{if(v>0)groups[v].push(w)});const host=document.getElementById("summary-cards");host.innerHTML="";LEVELS.forEach(L=>{const card=document.createElement("div");card.className="card";const c=document.createElement("div");c.className="c";const head=document.createElement("div");head.className="kv";head.innerHTML=`<div style="font-weight:600">${L.v}. ${L.s}</div><div class="badge">${groups[L.v].length} word(s)</div>`;c.appendChild(head);const ul=document.createElement("ul");ul.style.margin="8px 0 0 18px";ACTIONS[L.v].a.forEach(t=>{const li=document.createElement("li");li.textContent=t;li.style.fontSize="14px";li.style.color="var(--muted)";ul.appendChild(li)});c.appendChild(ul);if(groups[L.v].length){const you=document.createElement("div");you.className="small";you.innerHTML=`<b>Your words:</b> ${groups[L.v].join(", ")}`;you.style.marginTop="6px";c.appendChild(you)}card.appendChild(c);host.appendChild(card)})}
+function buildUrl(start,end){const p=new URLSearchParams({rel:"0",modestbranding:"1",controls:"1"});if(start!==undefined)p.set("start",String(start));if(end!==undefined)p.set("end",String(end));p.set("autoplay","0");return `https://www.youtube-nocookie.com/embed/${VIDEO_ID}?${p.toString()}`}
+function renderVideo(){const ordered=["diet","junk food","whole food","food security","takeaway"];const segs=ordered.map((w,i)=>({word:w,start:starts[w],end:i<ordered.length-1?starts[ordered[i+1]]-1:undefined,level:ratings[w]||0}));const needed=segs.filter(s=>s.level>=1&&s.level<=3);let full=false;let idx=0;let completed=needed.map(()=>false);const area=document.getElementById("video-area");const segCount=document.getElementById("seg-count");const segPct=document.getElementById("seg-pct");const segBar=document.getElementById("seg-bar");const modeLabel=document.getElementById("mode-label");const btnFull=document.getElementById("btn-full");const btnFocused=document.getElementById("btn-focused");function updateProg(){const total=needed.length;const done=completed.filter(Boolean).length;const pct=total?Math.round(done/total*100):0;segCount.textContent=`Segments completed: ${done}/${total}`;segPct.textContent=`${pct}%`;segBar.style.width=`${pct}%`}function renderPlayer(){modeLabel.textContent=full?"Full video (no skips)":"Focused segments (1–3)";area.innerHTML="";if(full){const d=document.createElement("div");d.className="aspect";d.innerHTML=`<iframe src="${buildUrl()}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;area.appendChild(d)}else{if(!needed.length){const n=document.createElement("div");n.className="small";n.textContent="Nice! You rated everything 4–5. Switch to Full video to watch without skips.";area.appendChild(n);return}const cur=needed[idx];const wrap=document.createElement("div");wrap.className="grid";const meta=document.createElement("div");meta.className="small";meta.innerHTML=`<b>Segment ${idx+1} of ${needed.length}</b> — ${cur.word}`;const d=document.createElement("div");d.className="aspect";d.innerHTML=`<iframe src="${buildUrl(cur.start,cur.end)}" title="Segment" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>`;const controls=document.createElement("div");controls.className="hstack";const time=document.createElement("div");time.className="small";time.textContent=`Starts at ${fmt(cur.start)}${cur.end?` · ends at ${fmt(cur.end)}`:""}`;const btns=document.createElement("div");btns.className="row";const b1=document.createElement("button");b1.className="btn";b1.textContent="Prev";b1.disabled=idx===0;b1.onclick=()=>{idx=Math.max(0,idx-1);renderPlayer()};const b2=document.createElement("button");b2.className="btn";b2.textContent="Mark complete";b2.onclick=()=>{completed[idx]=true;updateProg()};const b3=document.createElement("button");b3.className="btn primary";b3.textContent="Next";b3.disabled=idx===needed.length-1;b3.onclick=()=>{idx=Math.min(needed.length-1,idx+1);renderPlayer()};btns.appendChild(b1);btns.appendChild(b2);btns.appendChild(b3);controls.appendChild(time);controls.appendChild(btns);const dots=document.createElement("div");dots.className="dots";needed.forEach((s,i)=>{const dot=document.createElement("button");dot.className=`dot ${i===idx?"active":completed[i]?"done":""}`;dot.onclick=()=>{idx=i;renderPlayer()};dots.appendChild(dot)});wrap.appendChild(meta);wrap.appendChild(d);wrap.appendChild(controls);wrap.appendChild(dots);area.appendChild(wrap)}}btnFull.onclick=()=>{full=true;btnFull.classList.add("primary");btnFocused.classList.remove("primary");renderPlayer()};btnFocused.onclick=()=>{full=false;btnFocused.classList.add("primary");btnFull.classList.remove("primary");renderPlayer()};btnFocused.classList.add("primary");renderPlayer();updateProg()}
+function fmt(t){const m=String(Math.floor(t/60)).padStart(2,"0");const s=String(t%60).padStart(2,"0");return `${m}:${s}`}
+renderRate();document.getElementById("btn-clear").onclick=function(){if(!confirm("Clear all ratings?"))return;ratings={};WORDS.forEach(w=>ratings[w]=0);save();renderRate()};document.getElementById("btn-next-1").onclick=function(){const all=WORDS.every(w=>ratings[w]>0);if(!all&&!confirm("Some words are unrated. Continue to summary?"))return;renderSummary();show("summary")};document.getElementById("btn-back-2").onclick=function(){show("rate")};document.getElementById("btn-next-2").onclick=function(){renderVideo();show("video")};document.getElementById("btn-back-3").onclick=function(){show("summary")};
+</script>
+</body>
+</html>
